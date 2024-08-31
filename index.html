@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudKit Events</title>
+    <script src="https://cdn.apple-cloudkit.com/ck/2/cloudkit.js"></script>
+</head>
+<body>
+    <div id="apple-sign-in-button"></div>
+    <div id="apple-sign-out-button"></div>
+    <h1>Events</h1>
+    <div id="events"></div>
+
+    <script>
+        CloudKit.configure({
+            containers: [{
+                containerIdentifier: 'iCloud.com.frankengelman.CloudKitWeb', // Replace with your container ID
+                apiTokenAuth: {
+                    apiToken: 'af66f8ec9bda14249a2d70365dcff280119de7646d0ec4c12f432e58f5794b37', // Replace with your Web API token
+                    persist: true,
+                    signInButton: {
+                        id: 'apple-sign-in-button',
+                        theme: 'black' // Other options: 'white', 'white-with-outline'
+                    },
+                    signOutButton: {
+                        id: 'apple-sign-out-button',
+                        theme: 'black'
+                    }
+                },
+                environment: 'production' // or 'development'
+            }]
+        });
+
+        const container = CloudKit.getDefaultContainer();
+        const publicDB = container.publicCloudDatabase;
+
+        function fetchEvents() {
+            const query = {
+                recordType: 'Event',
+                sortBy: [{
+                    fieldName: 'timestamp',
+                    ascending: false
+                }]
+            };
+
+            publicDB.performQuery(query)
+                .then(response => {
+                    if (response.hasErrors) {
+                        console.error(response.errors[0]);
+                        return;
+                    }
+
+                    const events = response.records.map(record => {
+                        return {
+                            timestamp: record.fields.timestamp.value,
+                            eventDescription: record.fields.eventDescription.value
+                        };
+                    });
+
+                    displayEvents(events);
+                });
+        }
+
+        function displayEvents(events) {
+            const eventsContainer = document.getElementById('events');
+            eventsContainer.innerHTML = '';
+
+            events.forEach(event => {
+                const eventElement = document.createElement('div');
+                eventElement.innerHTML = `
+                    <h3>${event.eventDescription}</h3>
+                    <p>${new Date(event.timestamp).toLocaleString()}</p>
+                `;
+                eventsContainer.appendChild(eventElement);
+            });
+        }
+
+        // Fetch events when the page loads
+        window.onload = fetchEvents;
+    </script>
+</body>
+</html>
